@@ -66,7 +66,7 @@ It can then be activated by adding a ` -Pallure` to Maven commands, e.g.
                 <plugins>
                     <plugin>
                         <artifactId>maven-resources-plugin</artifactId>
-                        <version>2.7</version>
+                        <version>3.0.2</version>
                         <executions>
                             <execution>
                                 <id>copy-resources</id>
@@ -89,7 +89,7 @@ It can then be activated by adding a ` -Pallure` to Maven commands, e.g.
                             <dependency>
                                 <groupId>org.apache.maven.shared</groupId>
                                 <artifactId>maven-filtering</artifactId>
-                                <version>1.3</version>
+                                <version>3.1.1</version>
                             </dependency>
                         </dependencies>
                     </plugin>
