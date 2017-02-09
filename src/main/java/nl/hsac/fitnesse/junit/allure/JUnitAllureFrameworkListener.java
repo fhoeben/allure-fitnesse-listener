@@ -43,13 +43,13 @@ public class JUnitAllureFrameworkListener extends RunListener {
     private static final String PAGESOURCE_EXT = "html";
     private static final Pattern SCREENSHOT_PATTERN = Pattern.compile("href=\"([^\"]*." + SCREENSHOT_EXT + ")\"");
     private static final Pattern PAGESOURCE_PATTERN = Pattern.compile("href=\"([^\"]*." + PAGESOURCE_EXT + ")\"");
-    private final HashMap suites;
+    private final HashMap<String, String> suites;
     private final Label hostLabel;
     private final Allure allure;
 
     public JUnitAllureFrameworkListener() {
         this.allure = Allure.LIFECYCLE;
-        this.suites = new HashMap();
+        this.suites = new HashMap<>();
         String hostName = "unknown";
         try {
             hostName = InetAddress.getLocalHost().getHostName();
