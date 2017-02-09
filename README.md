@@ -58,7 +58,7 @@ It can then be activated by adding a ` -Pallure` to Maven commands, e.g.
                 <dependency>
                     <groupId>nl.hsac</groupId>
                     <artifactId>allure-fitnesse-listener</artifactId>
-                    <version>1.0-SNAPSHOT</version>
+                    <version>1.0.0a</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
