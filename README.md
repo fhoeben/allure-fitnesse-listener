@@ -1,4 +1,4 @@
-# Listener to incorporate FitNesse results in Allure report
+# Allure jUnit Listener for FitNesse
 
 [Allure reporting framework](http://allure.qatools.ru/) integration with [FitNesse](http://fitnesse.org)-setup based on 
 [hsac-fitnesse-fixtures](https://github.com/fhoeben/hsac-fitnesse-fixtures).
