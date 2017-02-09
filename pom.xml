@@ -42,7 +42,7 @@
 
         <fitnesse.version>20161106</fitnesse.version>
         <hsac.fixtures.version>2.10.2</hsac.fixtures.version>
-        <allure.version>1.4.23</allure.version>
+        <allure.version>1.5.0</allure.version>
     </properties>
 
     <dependencies>
