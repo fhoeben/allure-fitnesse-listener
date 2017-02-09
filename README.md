@@ -1,4 +1,5 @@
 # Allure jUnit Listener for FitNesse
+[![Maven Central](https://img.shields.io/maven-central/v/nl.hsac/allure-fitnesse-listener.svg?maxAge=86400)](https://mvnrepository.com/artifact/nl.hsac/allure-fitnesse-listener)
 
 [Allure reporting framework](http://allure.qatools.ru/) integration with [FitNesse](http://fitnesse.org)-setup based on 
 [hsac-fitnesse-fixtures](https://github.com/fhoeben/hsac-fitnesse-fixtures).
