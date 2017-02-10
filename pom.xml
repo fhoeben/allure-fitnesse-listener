@@ -27,6 +27,12 @@
             <organization>Hoeben Software Architecture Consulting B.V.</organization>
             <organizationUrl>https://nl.linkedin.com/in/friedhoeben</organizationUrl>
         </developer>
+        <developer>
+            <name>Tom Heintzberger</name>
+            <email>tom.heintzberger@praegus.nl</email>
+            <organization>Praegus B.V.</organization>
+            <organizationUrl>http://www.praegus.nl</organizationUrl>
+        </developer>
     </developers>
 
     <scm>
