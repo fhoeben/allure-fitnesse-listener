@@ -188,25 +188,26 @@ public class JUnitAllureFrameworkListener extends RunListener {
     }
 
     private void processAttachments(Throwable ex, List<Pattern> patterns) {
-
-        for (Pattern pattern : patterns) {
-            Matcher patternMatcher = pattern.matcher(ex.getMessage());
-            if (patternMatcher.find()) {
-                String filePath = HsacFitNesseRunner.FITNESSE_RESULTS_PATH + "/" + patternMatcher.group(1);
-                String attName;
-                String type;
-                String ext = FilenameUtils.getExtension(Paths.get(filePath).toString());
-                if (ext.equalsIgnoreCase(SCREENSHOT_EXT)) {
-                    attName = "Page Screenshot";
-                    type = "image/png";
-                } else if (ext.equalsIgnoreCase(PAGESOURCE_EXT)) {
-                    attName = "Page Source";
-                    type = "text/html";
-                } else {
-                    attName = "Attachment";
-                    type = "text/html";
+        if (null != ex.getMessage()) {
+            for (Pattern pattern : patterns) {
+                Matcher patternMatcher = pattern.matcher(ex.getMessage());
+                if (patternMatcher.find()) {
+                    String filePath = HsacFitNesseRunner.FITNESSE_RESULTS_PATH + "/" + patternMatcher.group(1);
+                    String attName;
+                    String type;
+                    String ext = FilenameUtils.getExtension(Paths.get(filePath).toString());
+                    if (ext.equalsIgnoreCase(SCREENSHOT_EXT)) {
+                        attName = "Page Screenshot";
+                        type = "image/png";
+                    } else if (ext.equalsIgnoreCase(PAGESOURCE_EXT)) {
+                        attName = "Page Source";
+                        type = "text/html";
+                    } else {
+                        attName = "Attachment";
+                        type = "text/html";
+                    }
+                    makeAttachment(fileToAttach(filePath), attName, type);
                 }
-                makeAttachment(fileToAttach(filePath), attName, type);
             }
         }
     }
