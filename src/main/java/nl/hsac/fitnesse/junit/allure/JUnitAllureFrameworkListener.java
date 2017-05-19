@@ -188,8 +188,8 @@ public class JUnitAllureFrameworkListener extends RunListener {
     }
 
     private void processAttachments(Throwable ex, List<Pattern> patterns) {
-        for (Pattern pattern : patterns) {
-            if (null != ex.getMessage()) {
+        if (null != ex.getMessage()) {
+            for (Pattern pattern : patterns) {
                 Matcher patternMatcher = pattern.matcher(ex.getMessage());
                 if (patternMatcher.find()) {
                     String filePath = HsacFitNesseRunner.FITNESSE_RESULTS_PATH + "/" + patternMatcher.group(1);
