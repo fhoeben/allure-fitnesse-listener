@@ -6,7 +6,7 @@
 
     <groupId>nl.hsac</groupId>
     <artifactId>allure-fitnesse-listener</artifactId>
-    <version>1.0.2-SNAPSHOT</version>
+    <version>1.0.2</version>
     <url>https://github.com/fhoeben/allure-fitnesse-listener</url>
     <name>Allure jUnit Listener for FitNesse</name>
     <description>jUnit Listener to incorporate FitNesse results in Allure</description>
