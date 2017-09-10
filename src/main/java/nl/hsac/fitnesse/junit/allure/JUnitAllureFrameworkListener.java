@@ -34,7 +34,6 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static io.qameta.allure.junit4.AllureJunit4.MD_5;
 import static io.qameta.allure.util.ResultsUtils.getStatus;
 import static io.qameta.allure.util.ResultsUtils.getStatusDetails;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -294,7 +293,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
 
     private MessageDigest getMessageDigest() {
         try {
-            return MessageDigest.getInstance(MD_5);
+            return MessageDigest.getInstance("md5");
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("Could not find md5 hashing algorithm", e);
         }
