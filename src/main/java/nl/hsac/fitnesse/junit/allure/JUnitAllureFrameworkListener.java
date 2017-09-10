@@ -232,7 +232,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
 
     private String fitnesseResult(String test) {
         String style = "width: 99%; height: 99%; overflow: auto; border: 0px;";
-        String iFrame = String.format("<iframe src=\"../../../fitnesse-results/%s.html\" style=\"%s\">", test, style);
+        String iFrame = String.format("<iframe src=\"../fitnesseResults/%s.html\" style=\"%s\">", test, style);
         return String.format("<html><head><title>FitNesse Report</title></head><body>%s</body>", iFrame);
     }
 
