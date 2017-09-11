@@ -39,7 +39,7 @@ import static io.qameta.allure.util.ResultsUtils.getStatusDetails;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * JUnit listener for Allure Framework. Based on default ru.yandex.qatools.lifecycle.junit.AllureRunListener
+ * JUnit listener for Allure Framework. Based on default io.qameta.allure.junit4.AllureJunit4
  */
 public class JUnitAllureFrameworkListener extends RunListener {
     private static final String SCREENSHOT_EXT = "png";
