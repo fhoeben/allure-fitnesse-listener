@@ -3,6 +3,7 @@ package nl.hsac.fitnesse.junit.allure;
 import fitnesse.junit.FitNessePageAnnotation;
 import fitnesse.junit.FitNesseRunner;
 import fitnesse.wiki.WikiPage;
+import nl.hsac.fitnesse.fixture.Environment;
 import nl.hsac.fitnesse.junit.HsacFitNesseRunner;
 import org.apache.commons.io.FilenameUtils;
 import org.junit.runner.Description;
@@ -43,6 +44,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
     private static final String PAGESOURCE_EXT = "html";
     private static final Pattern SCREENSHOT_PATTERN = Pattern.compile("href=\"([^\"]*." + SCREENSHOT_EXT + ")\"");
     private static final Pattern PAGESOURCE_PATTERN = Pattern.compile("href=\"([^\"]*." + PAGESOURCE_EXT + ")\"");
+    private final Environment hsacEnvironment = Environment.getInstance();
     private final HashMap<String, String> suites;
     private final Label hostLabel;
     private final Allure allure;
@@ -95,7 +97,8 @@ public class JUnitAllureFrameworkListener extends RunListener {
     }
 
     public void testFailure(Failure failure) {
-        if (failure.getDescription().isTest()) {
+        Description description = failure.getDescription();
+        if (description.isTest()) {
             Throwable exception = failure.getException();
             List<Pattern> patterns = new ArrayList<>();
             patterns.add(SCREENSHOT_PATTERN);
@@ -103,10 +106,10 @@ public class JUnitAllureFrameworkListener extends RunListener {
             processAttachments(exception, patterns);
 
             this.fireTestCaseFailure(exception);
-            this.recordTestResult(failure.getDescription());
+            this.recordTestResult(description);
 
         } else {
-            this.startFakeTestCase(failure.getDescription());
+            this.startFakeTestCase(description);
             this.fireTestCaseFailure(failure.getException());
             this.finishFakeTestCase();
         }
@@ -192,7 +195,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
             for (Pattern pattern : patterns) {
                 Matcher patternMatcher = pattern.matcher(ex.getMessage());
                 if (patternMatcher.find()) {
-                    String filePath = HsacFitNesseRunner.FITNESSE_RESULTS_PATH + "/" + patternMatcher.group(1);
+                    String filePath = hsacEnvironment.getFitNesseRootDir() + "/" + patternMatcher.group(1);
                     String attName;
                     String type;
                     String ext = FilenameUtils.getExtension(Paths.get(filePath).toString());
