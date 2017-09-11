@@ -46,7 +46,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
     private static final Pattern PAGESOURCE_PATTERN = Pattern.compile("href=\"([^\"]*." + PAGESOURCE_EXT + ")\"");
     private final Environment hsacEnvironment = Environment.getInstance();
     private final HashMap<String, String> suites;
-    private final Label hostLabel;
+    protected final Label hostLabel;
     private final Allure allure;
 
     public JUnitAllureFrameworkListener() {
@@ -81,9 +81,6 @@ public class JUnitAllureFrameworkListener extends RunListener {
     public void testStarted(Description description) {
         FitNessePageAnnotation pageAnn = description.getAnnotation(FitNessePageAnnotation.class);
         if (pageAnn != null) {
-            WikiPage page = pageAnn.getWikiPage();
-            String suiteName = page.getParent().getName();
-
             TestCaseStartedEvent event = new TestCaseStartedEvent(this.getSuiteUid(description), description.getMethodName());
             AnnotationManager am = new AnnotationManager(description.getAnnotations());
             am.update(event);
@@ -91,8 +88,8 @@ public class JUnitAllureFrameworkListener extends RunListener {
             this.fireClearStepStorage();
             getAllure().fire(event);
 
-            String tagInfo = page.getData().getProperties().get("Suites");
-            createStories(suiteName, tagInfo);
+            WikiPage page = pageAnn.getWikiPage();
+            addLabels(page);
         }
     }
 
@@ -238,28 +235,40 @@ public class JUnitAllureFrameworkListener extends RunListener {
         return String.format("<html><head><title>FitNesse Report</title></head><body>%s</body>", iFrame);
     }
 
-    private void createStories(String suite, String tagInfo) {
+    private void addLabels(WikiPage page) {
+        List<Label> labels = createLabels(page);
+        AllureSetLabelsEvent event = new AllureSetLabelsEvent(labels);
+        getAllure().fire(event);
+    }
+
+    protected List<Label> createLabels(WikiPage page) {
         List<Label> labels = new ArrayList<>();
 
+        String suiteName = page.getParent().getName();
         Label featureLabel = new Label();
         featureLabel.setName("feature");
-        featureLabel.setValue(suite);
+        featureLabel.setValue(suiteName);
         labels.add(featureLabel);
-        if (null != tagInfo) {
-            String[] tags = tagInfo.split(",");
-            for (String tag : tags) {
-                tag = tag.trim();
-                Label storyLabel = new Label();
-                storyLabel.setName("story");
-                storyLabel.setValue(tag);
-                labels.add(storyLabel);
-            }
+
+        for (String tag : getTags(page)) {
+            tag = tag.trim();
+            Label storyLabel = new Label();
+            storyLabel.setName("story");
+            storyLabel.setValue(tag);
+            labels.add(storyLabel);
         }
 
         //For some reason, the host label no longer gets set when applying story labels..
         labels.add(hostLabel);
+        return labels;
+    }
 
-        AllureSetLabelsEvent event = new AllureSetLabelsEvent(labels);
-        getAllure().fire(event);
+    protected String[] getTags(WikiPage page) {
+        String[] tags = new String[0];
+        String tagInfo = page.getData().getProperties().get("Suites");
+        if (null != tagInfo) {
+            tags = tagInfo.split(",");
+        }
+        return tags;
     }
 }
