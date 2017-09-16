@@ -5,6 +5,7 @@ import fitnesse.junit.FitNesseRunner;
 import fitnesse.wiki.WikiPage;
 import nl.hsac.fitnesse.fixture.Environment;
 import nl.hsac.fitnesse.junit.HsacFitNesseRunner;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.junit.runner.Description;
 import org.junit.runner.Result;
@@ -20,8 +21,10 @@ import ru.yandex.qatools.allure.events.TestCaseStartedEvent;
 import ru.yandex.qatools.allure.events.TestSuiteFinishedEvent;
 import ru.yandex.qatools.allure.events.TestSuiteStartedEvent;
 import ru.yandex.qatools.allure.model.Label;
+import ru.yandex.qatools.allure.utils.AllureResultsUtils;
 import ru.yandex.qatools.allure.utils.AnnotationManager;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -126,12 +129,12 @@ public class JUnitAllureFrameworkListener extends RunListener {
         getAllure().fire(new TestSuiteFinishedEvent(uid));
     }
 
-    public void testRunFinished(Result result) {
+    public void testRunFinished(Result result) throws IOException {
 
         for (String uid : this.getSuites().values()) {
             this.testSuiteFinished(uid);
         }
-
+        copyFitNesseResults();
     }
 
     private String generateSuiteUid(String suiteName) {
@@ -227,6 +230,12 @@ public class JUnitAllureFrameworkListener extends RunListener {
             data = null;
         }
         return data;
+    }
+
+    private void copyFitNesseResults() throws IOException {
+        File resultsSrc = new File(hsacEnvironment.getFitNesseRootDir());
+        File resultsTarget = new File(AllureResultsUtils.getResultsDirectory(), "fitnesseResults");
+        FileUtils.copyDirectory(resultsSrc, resultsTarget);
     }
 
     private String fitnesseResult(String test) {

@@ -59,7 +59,7 @@ It can then be activated by adding a ` -Pallure` to Maven commands, e.g.
                 <dependency>
                     <groupId>nl.hsac</groupId>
                     <artifactId>allure-fitnesse-listener</artifactId>
-                    <version>1.0.0a</version>
+                    <version>1.0.4</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -79,7 +79,7 @@ It can then be activated by adding a ` -Pallure` to Maven commands, e.g.
                                     <outputDirectory>${allure.report.directory}/fitnesseResults</outputDirectory>
                                     <resources>
                                         <resource>
-                                            <directory>${project.build.directory}/fitnesse-results</directory>
+                                            <directory>${project.build.directory}/allure-results/fitnesseResults</directory>
                                             <filtering>true</filtering>
                                         </resource>
                                     </resources>
