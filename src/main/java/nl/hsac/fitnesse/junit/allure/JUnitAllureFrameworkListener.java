@@ -64,12 +64,11 @@ public class JUnitAllureFrameworkListener extends RunListener {
         hostLabel.setValue(hostName);
     }
 
-    private boolean isSpecialPage(String pageName) {
+    public boolean isSpecialPage(String pageName) {
         return pageName.matches(".*(\\.SuiteSetUp|\\.SetUp|\\.TearDown|\\.SuiteTearDown)$");
     }
 
     private void testSuiteStarted(Description description) {
-        if (!isSpecialPage(description.getClassName())) {
             String uid = this.generateSuiteUid(description.getDisplayName());
             String suiteName = description.getClassName();
 
@@ -79,10 +78,9 @@ public class JUnitAllureFrameworkListener extends RunListener {
             event.withLabels(AllureModelUtils.createTestFrameworkLabel("FitNesse"));
             getAllure().fire(event);
         }
-    }
 
     public void testStarted(Description description) {
-        if (!isSpecialPage(description.getClassName())) {
+        if (!isSpecialPage(description.getMethodName())) {
             FitNessePageAnnotation pageAnn = description.getAnnotation(FitNessePageAnnotation.class);
             if (pageAnn != null) {
                 TestCaseStartedEvent event = new TestCaseStartedEvent(this.getSuiteUid(description), description.getMethodName());
@@ -99,7 +97,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
     }
     public void testFailure(Failure failure) {
         Description description = failure.getDescription();
-        if (!isSpecialPage(description.getClassName())) {
+        if (!isSpecialPage(description.getMethodName())) {
             if (description.isTest()) {
                 Throwable exception = failure.getException();
                 List<Pattern> patterns = new ArrayList<>();
@@ -123,7 +121,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
     }
 
     public void testFinished(Description description) {
-        if (!isSpecialPage(description.getClassName())) {
+        if (!isSpecialPage(description.getMethodName())) {
             String methodName = description.getMethodName();
             makeAttachment(fitnesseResult(methodName).getBytes(), "FitNesse Result page", "text/html");
             getAllure().fire(new TestCaseFinishedEvent());
