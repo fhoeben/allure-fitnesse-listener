@@ -40,6 +40,7 @@ import java.util.regex.Pattern;
 /**
  * JUnit listener for Allure Framework. Based on default ru.yandex.qatools.allure.junit.AllureRunListener
  */
+
 public class JUnitAllureFrameworkListener extends RunListener {
     private static final String SCREENSHOT_EXT = "png";
     private static final String PAGESOURCE_EXT = "html";
@@ -49,6 +50,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
     private final HashMap<String, String> suites;
     private final Label hostLabel;
     private final Allure allure;
+    private boolean skipSpecialPages;
 
     public JUnitAllureFrameworkListener() {
         this.allure = Allure.LIFECYCLE;
@@ -62,10 +64,8 @@ public class JUnitAllureFrameworkListener extends RunListener {
         hostLabel = new Label();
         hostLabel.setName("host");
         hostLabel.setValue(hostName);
-    }
-
-    private boolean isSpecialPage(String pageName) {
-        return pageName.matches(".*(\\.SuiteSetUp|\\.SetUp|\\.TearDown|\\.SuiteTearDown)$");
+        skipSpecialPages = null != System.getProperty("skipSpecialPagesInAllure") ?
+                Boolean.valueOf(System.getProperty("skipSpecialPagesInAllure")) : false;
     }
 
     private void testSuiteStarted(Description description) {
@@ -79,8 +79,9 @@ public class JUnitAllureFrameworkListener extends RunListener {
             getAllure().fire(event);
         }
 
+    @Override
     public void testStarted(Description description) {
-        if (!isSpecialPage(description.getMethodName())) {
+        if (reportTestPage(description.getMethodName())) {
             FitNessePageAnnotation pageAnn = description.getAnnotation(FitNessePageAnnotation.class);
             if (pageAnn != null) {
                 TestCaseStartedEvent event = new TestCaseStartedEvent(this.getSuiteUid(description), description.getMethodName());
@@ -95,9 +96,11 @@ public class JUnitAllureFrameworkListener extends RunListener {
             }
         }
     }
+
+    @Override
     public void testFailure(Failure failure) {
         Description description = failure.getDescription();
-        if (!isSpecialPage(description.getMethodName())) {
+        if (reportTestPage(description.getMethodName())) {
             if (description.isTest()) {
                 Throwable exception = failure.getException();
                 List<Pattern> patterns = new ArrayList<>();
@@ -116,12 +119,14 @@ public class JUnitAllureFrameworkListener extends RunListener {
         }
     }
 
+    @Override
     public void testAssumptionFailure(Failure failure) {
         this.testFailure(failure);
     }
 
+    @Override
     public void testFinished(Description description) {
-        if (!isSpecialPage(description.getMethodName())) {
+        if (reportTestPage(description.getMethodName())) {
             String methodName = description.getMethodName();
             makeAttachment(fitnesseResult(methodName).getBytes(), "FitNesse Result page", "text/html");
             getAllure().fire(new TestCaseFinishedEvent());
@@ -132,6 +137,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
         getAllure().fire(new TestSuiteFinishedEvent(uid));
     }
 
+    @Override
     public void testRunFinished(Result result) throws IOException {
 
         for (String uid : this.getSuites().values()) {
@@ -282,5 +288,13 @@ public class JUnitAllureFrameworkListener extends RunListener {
             tags = tagInfo.split(",");
         }
         return tags;
+    }
+
+    private boolean reportTestPage(String pageName) {
+        if (!skipSpecialPages) {
+            return true;
+        } else {
+            return !pageName.matches(".*(\\.SuiteSetUp|\\.SuiteTearDown)$");
+        }
     }
 }
