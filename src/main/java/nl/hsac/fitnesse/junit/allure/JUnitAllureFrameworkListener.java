@@ -1,10 +1,8 @@
 package nl.hsac.fitnesse.junit.allure;
 
 import fitnesse.junit.FitNessePageAnnotation;
-import fitnesse.junit.FitNesseRunner;
 import fitnesse.wiki.WikiPage;
 import nl.hsac.fitnesse.fixture.Environment;
-import nl.hsac.fitnesse.junit.HsacFitNesseRunner;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.junit.runner.Description;
@@ -49,7 +47,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
     private static final Pattern PAGESOURCE_PATTERN = Pattern.compile("href=\"([^\"]*." + PAGESOURCE_EXT + ")\"");
     private final Environment hsacEnvironment = Environment.getInstance();
     private final HashMap<String, String> suites;
-    protected final Label hostLabel;
+    private final Label hostLabel;
     private final Allure allure;
 
     public JUnitAllureFrameworkListener() {
@@ -66,52 +64,57 @@ public class JUnitAllureFrameworkListener extends RunListener {
         hostLabel.setValue(hostName);
     }
 
-    private void testSuiteStarted(Description description) {
-        String uid = this.generateSuiteUid(description.getDisplayName());
-        String suiteName = System.getProperty(HsacFitNesseRunner.SUITE_OVERRIDE_VARIABLE_NAME);
-        if (null == suiteName) {
-            suiteName = description.getAnnotation(FitNesseRunner.Suite.class).value();
-        }
-
-        TestSuiteStartedEvent event = new TestSuiteStartedEvent(uid, suiteName);
-        AnnotationManager am = new AnnotationManager(description.getAnnotations());
-        am.update(event);
-        event.withLabels(AllureModelUtils.createTestFrameworkLabel("FitNesse"));
-        getAllure().fire(event);
+    private boolean isSpecialPage(String pageName) {
+        return pageName.matches(".*(\\.SuiteSetUp|\\.SetUp|\\.TearDown|\\.SuiteTearDown)$");
     }
 
+    private void testSuiteStarted(Description description) {
+        if (!isSpecialPage(description.getClassName())) {
+            String uid = this.generateSuiteUid(description.getDisplayName());
+            String suiteName = description.getClassName();
 
-    public void testStarted(Description description) {
-        FitNessePageAnnotation pageAnn = description.getAnnotation(FitNessePageAnnotation.class);
-        if (pageAnn != null) {
-            TestCaseStartedEvent event = new TestCaseStartedEvent(this.getSuiteUid(description), description.getMethodName());
+            TestSuiteStartedEvent event = new TestSuiteStartedEvent(uid, suiteName);
             AnnotationManager am = new AnnotationManager(description.getAnnotations());
             am.update(event);
-
-            this.fireClearStepStorage();
+            event.withLabels(AllureModelUtils.createTestFrameworkLabel("FitNesse"));
             getAllure().fire(event);
-
-            WikiPage page = pageAnn.getWikiPage();
-            addLabels(page);
         }
     }
 
+    public void testStarted(Description description) {
+        if (!isSpecialPage(description.getClassName())) {
+            FitNessePageAnnotation pageAnn = description.getAnnotation(FitNessePageAnnotation.class);
+            if (pageAnn != null) {
+                TestCaseStartedEvent event = new TestCaseStartedEvent(this.getSuiteUid(description), description.getMethodName());
+                AnnotationManager am = new AnnotationManager(description.getAnnotations());
+                am.update(event);
+
+                this.fireClearStepStorage();
+                getAllure().fire(event);
+
+                WikiPage page = pageAnn.getWikiPage();
+                addLabels(page);
+            }
+        }
+    }
     public void testFailure(Failure failure) {
         Description description = failure.getDescription();
-        if (description.isTest()) {
-            Throwable exception = failure.getException();
-            List<Pattern> patterns = new ArrayList<>();
-            patterns.add(SCREENSHOT_PATTERN);
-            patterns.add(PAGESOURCE_PATTERN);
-            processAttachments(exception, patterns);
+        if (!isSpecialPage(description.getClassName())) {
+            if (description.isTest()) {
+                Throwable exception = failure.getException();
+                List<Pattern> patterns = new ArrayList<>();
+                patterns.add(SCREENSHOT_PATTERN);
+                patterns.add(PAGESOURCE_PATTERN);
+                processAttachments(exception, patterns);
 
-            this.fireTestCaseFailure(exception);
-            this.recordTestResult(description);
+                this.fireTestCaseFailure(exception);
+                this.recordTestResult(description);
 
-        } else {
-            this.startFakeTestCase(description);
-            this.fireTestCaseFailure(failure.getException());
-            this.finishFakeTestCase();
+            } else {
+                this.startFakeTestCase(description);
+                this.fireTestCaseFailure(failure.getException());
+                this.finishFakeTestCase();
+            }
         }
     }
 
@@ -120,9 +123,11 @@ public class JUnitAllureFrameworkListener extends RunListener {
     }
 
     public void testFinished(Description description) {
-        String methodName = description.getMethodName();
-        makeAttachment(fitnesseResult(methodName).getBytes(), "FitNesse Result page", "text/html");
-        getAllure().fire(new TestCaseFinishedEvent());
+        if (!isSpecialPage(description.getClassName())) {
+            String methodName = description.getMethodName();
+            makeAttachment(fitnesseResult(methodName).getBytes(), "FitNesse Result page", "text/html");
+            getAllure().fire(new TestCaseFinishedEvent());
+        }
     }
 
     private void testSuiteFinished(String uid) {
@@ -182,7 +187,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
         return this.allure;
     }
 
-    public Map<String, String> getSuites() {
+    private Map<String, String> getSuites() {
         return this.suites;
     }
 
@@ -250,7 +255,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
         getAllure().fire(event);
     }
 
-    protected List<Label> createLabels(WikiPage page) {
+    private List<Label> createLabels(WikiPage page) {
         List<Label> labels = new ArrayList<>();
 
         String suiteName = page.getParent().getName();
@@ -272,7 +277,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
         return labels;
     }
 
-    protected String[] getTags(WikiPage page) {
+    private String[] getTags(WikiPage page) {
         String[] tags = new String[0];
         String tagInfo = page.getData().getProperties().get("Suites");
         if (null != tagInfo) {
