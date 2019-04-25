@@ -64,7 +64,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
         hostLabel.setValue(hostName);
     }
 
-    public boolean isSpecialPage(String pageName) {
+    private boolean isSpecialPage(String pageName) {
         return pageName.matches(".*(\\.SuiteSetUp|\\.SetUp|\\.TearDown|\\.SuiteTearDown)$");
     }
 
