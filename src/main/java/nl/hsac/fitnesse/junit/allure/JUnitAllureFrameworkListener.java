@@ -46,6 +46,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
     private static final String PAGESOURCE_EXT = "html";
     private static final Pattern SCREENSHOT_PATTERN = Pattern.compile("href=\"([^\"]*." + SCREENSHOT_EXT + ")\"");
     private static final Pattern PAGESOURCE_PATTERN = Pattern.compile("href=\"([^\"]*." + PAGESOURCE_EXT + ")\"");
+    private static final Pattern SPECIAL_PAGE_PATTERN = Pattern.compile(".*(\\.SuiteSetUp|\\.SuiteTearDown)$");
     private final Environment hsacEnvironment = Environment.getInstance();
     private final HashMap<String, String> suites;
     private final Label hostLabel;
@@ -291,10 +292,6 @@ public class JUnitAllureFrameworkListener extends RunListener {
     }
 
     private boolean reportTestPage(String pageName) {
-        if (!skipSpecialPages) {
-            return true;
-        } else {
-            return !pageName.matches(".*(\\.SuiteSetUp|\\.SuiteTearDown)$");
-        }
+        return !skipSpecialPages || !SPECIAL_PAGE_PATTERN.matcher(pageName).matches();
     }
 }
