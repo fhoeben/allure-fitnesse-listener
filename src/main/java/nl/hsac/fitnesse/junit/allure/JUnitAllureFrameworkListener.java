@@ -47,11 +47,12 @@ public class JUnitAllureFrameworkListener extends RunListener {
     private static final Pattern SCREENSHOT_PATTERN = Pattern.compile("href=\"([^\"]*." + SCREENSHOT_EXT + ")\"");
     private static final Pattern PAGESOURCE_PATTERN = Pattern.compile("href=\"([^\"]*." + PAGESOURCE_EXT + ")\"");
     private static final Pattern SPECIAL_PAGE_PATTERN = Pattern.compile(".*(\\.SuiteSetUp|\\.SuiteTearDown)$");
+
     private final Environment hsacEnvironment = Environment.getInstance();
     private final HashMap<String, String> suites;
     private final Label hostLabel;
     private final Allure allure;
-    private boolean skipSpecialPages;
+    private final boolean skipSpecialPages;
 
     public JUnitAllureFrameworkListener() {
         this.allure = Allure.LIFECYCLE;
@@ -69,16 +70,14 @@ public class JUnitAllureFrameworkListener extends RunListener {
                 Boolean.valueOf(System.getProperty("skipSpecialPagesInAllure")) : false;
     }
 
-    private void testSuiteStarted(Description description) {
-            String uid = this.generateSuiteUid(description.getDisplayName());
-            String suiteName = description.getClassName();
-
-            TestSuiteStartedEvent event = new TestSuiteStartedEvent(uid, suiteName);
-            AnnotationManager am = new AnnotationManager(description.getAnnotations());
-            am.update(event);
-            event.withLabels(AllureModelUtils.createTestFrameworkLabel("FitNesse"));
-            getAllure().fire(event);
-        }
+    private void testSuiteStarted(Description description, String suiteName) {
+        String uid = this.generateSuiteUid(suiteName);
+        TestSuiteStartedEvent event = new TestSuiteStartedEvent(uid, suiteName);
+        AnnotationManager am = new AnnotationManager(description.getAnnotations());
+        am.update(event);
+        event.withLabels(AllureModelUtils.createTestFrameworkLabel("FitNesse"));
+        getAllure().fire(event);
+    }
 
     @Override
     public void testStarted(Description description) {
@@ -140,7 +139,6 @@ public class JUnitAllureFrameworkListener extends RunListener {
 
     @Override
     public void testRunFinished(Result result) throws IOException {
-
         for (String uid : this.getSuites().values()) {
             this.testSuiteFinished(uid);
         }
@@ -155,12 +153,17 @@ public class JUnitAllureFrameworkListener extends RunListener {
         }
     }
 
-
     private String getSuiteUid(Description description) {
-        String suiteName = description.getClassName();
+        String suiteName;
+        FitNessePageAnnotation pageAnn = description.getAnnotation(FitNessePageAnnotation.class);
+        if (pageAnn != null) {
+            suiteName = getFullSuitePath(pageAnn.getWikiPage());
+        } else {
+            suiteName = description.getClassName();
+        }
         if (!this.getSuites().containsKey(suiteName)) {
             Description suiteDescription = Description.createSuiteDescription(description.getTestClass());
-            this.testSuiteStarted(suiteDescription);
+            this.testSuiteStarted(suiteDescription, suiteName);
         }
 
         return this.getSuites().get(suiteName);
@@ -272,9 +275,16 @@ public class JUnitAllureFrameworkListener extends RunListener {
         for (String tag : getTags(page)) {
             tag = tag.trim();
             Label storyLabel = new Label();
+            Label tagLabel = new Label();
+
             storyLabel.setName("story");
             storyLabel.setValue(tag);
+
+            tagLabel.setName("tag");
+            tagLabel.setValue(tag);
+
             labels.add(storyLabel);
+            labels.add(tagLabel);
         }
 
         //For some reason, the host label no longer gets set when applying story labels..
@@ -289,6 +299,17 @@ public class JUnitAllureFrameworkListener extends RunListener {
             tags = tagInfo.split(",");
         }
         return tags;
+    }
+
+    private String getFullSuitePath(WikiPage page) {
+        StringBuilder suitePath = new StringBuilder();
+        while (page.getParent() != page) {
+            if (!page.getParent().getName().equals("FitNesseRoot")) {
+                suitePath.insert(0, page.getParent().getName() + ".");
+            }
+            page = page.getParent();
+        }
+        return suitePath.toString().substring(0, suitePath.length() - 1);
     }
 
     private boolean reportTestPage(String pageName) {
