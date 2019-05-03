@@ -46,71 +46,111 @@ The 'profile' element below provides a sample on how to incorporate both capturi
 an Allure report in a project based on hsac-fitness-project. It is intended to be incorporated inside the 'profiles'
 element in a pom.xml similar to the [one in the hsac-fitnesse sample project](https://github.com/fhoeben/sample-fitnesse-project/blob/master/pom.xml).
 
-It can then be activated by adding a ` -Pallure` to Maven commands, e.g. 
-```mvn clean test-compile failsafe:integration-test -DfitnesseSuiteToRun=HsacExamples.SlimTests -Pallure``` or
-```mvn site -Pallure```.
+It can then be activated by adding a ` -Pallure` to Maven commands, typically like:
+
+```mvn clean test-compile failsafe:integration-test -DfitnesseSuiteToRun=HsacExamples.SlimTests -Pallure``` to run your tests,
+
+```mvn test-compile failsafe:integration-test -DfitnesseSuiteToRun=ReRunLastFailures -Pallure``` to rerun failed tests
+
+and
+
+```mvn site -Pallure``` to generate the HTML report.
+
+To allow keeping history, add the following exclude to the maven clean plugin in your project:
+```
+        <fileset>
+              <directory>target</directory>
+              <includes>
+                  <include>**</include>
+              </includes>
+              <excludes>
+                  <exclude>allure-results/history/**</exclude>
+              </excludes>
+         </fileset>
+```
+
+The following profile can be used with any hsac project to generate full reports.
+Set properties `allure.report.directory`, `allure.fitnesse.listener.version`, `allure.maven.plugin.version`, `allure.report.version` for your preferred versions (plugin & report versions are @ 2.10.0 and 2.11.0 at the moment of writing)
 
 ```
         <profile>
-            <id>allure</id>
-            <properties>
-                <allure.report.directory>${project.build.directory}/allure-report</allure.report.directory>
-                <extraFailsafeListeners>,nl.hsac.fitnesse.junit.allure.JUnitAllureFrameworkListener</extraFailsafeListeners>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>nl.hsac</groupId>
-                    <artifactId>allure-fitnesse-listener</artifactId>
-                    <version>1.0.4</version>
-                    <scope>test</scope>
-                </dependency>
-            </dependencies>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-resources-plugin</artifactId>
-                        <version>3.0.2</version>
-                        <executions>
-                            <execution>
-                                <id>copy-resources</id>
-                                <phase>site</phase>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
-                                <configuration>
-                                    <outputDirectory>${allure.report.directory}/fitnesseResults</outputDirectory>
-                                    <resources>
-                                        <resource>
-                                            <directory>${project.build.directory}/allure-results/fitnesseResults</directory>
-                                            <filtering>true</filtering>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                        <dependencies>
-                            <dependency>
-                                <groupId>org.apache.maven.shared</groupId>
-                                <artifactId>maven-filtering</artifactId>
-                                <version>3.1.1</version>
-                            </dependency>
-                        </dependencies>
-                    </plugin>
-                </plugins>
-            </build>
-            <reporting>
-                <excludeDefaults>true</excludeDefaults>
-                <plugins>
-                    <plugin>
-                        <groupId>ru.yandex.qatools.allure</groupId>
-                        <artifactId>allure-maven-plugin</artifactId>
-                        <version>2.5</version>
-                        <configuration>
-                            <resultsDirectory>allure-results</resultsDirectory>
-                            <reportDirectory>${allure.report.directory}</reportDirectory>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </reporting>
-        </profile>
+                    <id>allure</id>
+                    <properties>
+                        <allure.report.directory>${project.build.directory}/allure-report</allure.report.directory>
+                        <extraFailsafeListeners>,nl.hsac.fitnesse.junit.JUnitXMLPerPageListener,nl.hsac.fitnesse.junit.allure.JUnitAllureFrameworkListener</extraFailsafeListeners>
+                    </properties>
+                    <dependencies>
+                        <dependency>
+                            <groupId>nl.hsac</groupId>
+                            <artifactId>allure-fitnesse-listener</artifactId>
+                            <version>${allure.fitnesse.listener.version}</version>
+                            <scope>test</scope>
+                        </dependency>
+
+                    </dependencies>
+                    <build>
+                        <plugins>
+                            <plugin>
+                                <artifactId>maven-resources-plugin</artifactId>
+                                <version>3.0.2</version>
+                                <executions>
+                                    <execution>
+                                        <id>copy-resources</id>
+                                        <phase>site</phase>
+                                        <goals>
+                                            <goal>copy-resources</goal>
+                                        </goals>
+                                        <configuration>
+                                            <outputDirectory>${allure.report.directory}/data/fitnesseResults</outputDirectory>
+                                            <resources>
+                                                <resource>
+                                                    <directory>${project.build.directory}/fitnesse-results</directory>
+                                                    <filtering>true</filtering>
+                                                </resource>
+                                            </resources>
+                                        </configuration>
+                                    </execution>
+                                    <execution>
+                                        <id>copy-resources-allurehistory</id>
+                                        <phase>site</phase>
+                                        <goals>
+                                            <goal>copy-resources</goal>
+                                        </goals>
+                                        <configuration>
+                                            <outputDirectory>${project.build.directory}/allure-results/history</outputDirectory>
+                                            <resources>
+                                                <resource>
+                                                    <directory>${allure.report.directory}/history</directory>
+                                                    <filtering>true</filtering>
+                                                </resource>
+                                            </resources>
+                                        </configuration>
+                                    </execution>
+                                </executions>
+                                <dependencies>
+                                    <dependency>
+                                        <groupId>org.apache.maven.shared</groupId>
+                                        <artifactId>maven-filtering</artifactId>
+                                        <version>3.1.1</version>
+                                    </dependency>
+                                </dependencies>
+                            </plugin>
+                        </plugins>
+                    </build>
+                    <reporting>
+                        <excludeDefaults>true</excludeDefaults>
+                        <plugins>
+                        <plugin>
+                            <groupId>io.qameta.allure</groupId>
+                            <artifactId>allure-maven</artifactId>
+                            <version>${allure.maven.plugin.version}</version>
+                            <configuration>
+                                <resultsDirectory>allure-results</resultsDirectory>
+                                <reportDirectory>${allure.report.directory}</reportDirectory>
+                                <reportVersion>${allure.report.version}</reportVersion>
+                            </configuration>
+                        </plugin>
+                        </plugins>
+                    </reporting>
+                </profile>
 ```
