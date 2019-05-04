@@ -48,7 +48,7 @@
 
         <fitnesse.version>20190428</fitnesse.version>
         <hsac.fixtures.version>4.4.1</hsac.fixtures.version>
-        <allure.version>2.0-BETA17</allure.version>
+        <allure.version>2.11.0</allure.version>
     </properties>
 
     <dependencies>

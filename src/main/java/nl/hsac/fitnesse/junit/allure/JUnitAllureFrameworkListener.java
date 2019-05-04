@@ -60,9 +60,9 @@ public class JUnitAllureFrameworkListener extends RunListener {
     private void testSuiteStarted(String suiteName) {
         String uid = this.generateSuiteUid(suiteName);
         final TestResultContainer result = new TestResultContainer()
-                .withUuid(uid)
-                .withName(suiteName)
-                .withStart(System.currentTimeMillis());
+                .setUuid(uid)
+                .setName(suiteName)
+                .setStart(System.currentTimeMillis());
         getLifecycle().startTestContainer(result);
     }
 
@@ -164,10 +164,10 @@ public class JUnitAllureFrameworkListener extends RunListener {
         final String fullName = Objects.nonNull(methodName) ? String.format("%s.%s", className, methodName) : className;
 
         TestResult result = new TestResult()
-                .withUuid(uid)
-                .withHistoryId(getHistoryId(description, methodName))
-                .withName(name)
-                .withFullName(fullName);
+                .setUuid(uid)
+                .setHistoryId(getHistoryId(description, methodName))
+                .setName(name)
+                .setFullName(fullName);
 
         getLifecycle().scheduleTestCase(result);
         getLifecycle().startTestCase(uid);
@@ -181,8 +181,8 @@ public class JUnitAllureFrameworkListener extends RunListener {
 
     private void fireTestCaseFailure(String uuid, Throwable throwable) {
         getLifecycle().updateTestCase(uuid, testResult -> testResult
-                .withStatus(getStatus(throwable).orElse(null))
-                .withStatusDetails(getStatusDetails(throwable).orElse(null))
+                .setStatus(getStatus(throwable).orElse(null))
+                .setStatusDetails(getStatusDetails(throwable).orElse(null))
         );
     }
 
@@ -252,11 +252,11 @@ public class JUnitAllureFrameworkListener extends RunListener {
         String name = page.getName();
 
         return new TestResult()
-                .withUuid(uuid)
-                .withHistoryId(getHistoryId(description, fullName))
-                .withName(name)
-                .withFullName(fullName)
-                .withLabels(labels);
+                .setUuid(uuid)
+                .setHistoryId(getHistoryId(description, fullName))
+                .setName(name)
+                .setFullName(fullName)
+                .setLabels(labels);
     }
 
     private String getFullName(WikiPage page) {
