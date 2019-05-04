@@ -1,7 +1,6 @@
 package nl.hsac.fitnesse.junit.allure;
 
 import fitnesse.junit.FitNessePageAnnotation;
-import fitnesse.junit.FitNesseRunner;
 import fitnesse.wiki.WikiPage;
 import io.qameta.allure.Allure;
 import io.qameta.allure.AllureLifecycle;
@@ -10,7 +9,7 @@ import io.qameta.allure.model.Status;
 import io.qameta.allure.model.TestResult;
 import io.qameta.allure.model.TestResultContainer;
 import io.qameta.allure.util.ResultsUtils;
-import nl.hsac.fitnesse.junit.HsacFitNesseRunner;
+import nl.hsac.fitnesse.fixture.Environment;
 import org.apache.commons.io.FilenameUtils;
 import org.junit.runner.Description;
 import org.junit.runner.Result;
@@ -24,13 +23,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Stack;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,29 +34,31 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 /**
  * JUnit listener for Allure Framework. Based on default io.qameta.allure.junit4.AllureJunit4
  */
+
 public class JUnitAllureFrameworkListener extends RunListener {
     private static final String SCREENSHOT_EXT = "png";
     private static final String PAGESOURCE_EXT = "html";
     private static final Pattern SCREENSHOT_PATTERN = Pattern.compile("href=\"([^\"]*." + SCREENSHOT_EXT + ")\"");
     private static final Pattern PAGESOURCE_PATTERN = Pattern.compile("href=\"([^\"]*." + PAGESOURCE_EXT + ")\"");
+    private static final Pattern SPECIAL_PAGE_PATTERN = Pattern.compile(".*(\\.SuiteSetUp|\\.SuiteTearDown)$");
+
+    private final Environment hsacEnvironment = Environment.getInstance();
     private String currentTestUUID;
     private final LinkedHashMap<String, String> suites;
     private final Label hostLabel;
     private final AllureLifecycle lifecycle;
+    private final boolean skipSpecialPages;
 
     public JUnitAllureFrameworkListener() {
         this.lifecycle = Allure.getLifecycle();
         this.suites = new LinkedHashMap<>();
         hostLabel = ResultsUtils.createHostLabel();
+        skipSpecialPages = null != System.getProperty("skipSpecialPagesInAllure") ?
+                Boolean.valueOf(System.getProperty("skipSpecialPagesInAllure")) : false;
     }
 
-    private void testSuiteStarted(Description description) {
-        String uid = this.generateSuiteUid(description.getDisplayName());
-        String suiteName = System.getProperty(HsacFitNesseRunner.SUITE_OVERRIDE_VARIABLE_NAME);
-        if (null == suiteName) {
-            suiteName = description.getAnnotation(FitNesseRunner.Suite.class).value();
-        }
-
+    private void testSuiteStarted(String suiteName) {
+        String uid = this.generateSuiteUid(suiteName);
         final TestResultContainer result = new TestResultContainer()
                 .withUuid(uid)
                 .withName(suiteName)
@@ -78,26 +73,31 @@ public class JUnitAllureFrameworkListener extends RunListener {
 
     @Override
     public void testStarted(Description description) {
-        FitNessePageAnnotation pageAnn = description.getAnnotation(FitNessePageAnnotation.class);
-        if (pageAnn != null) {
-            final String uuid = generateNewTestUUID();
-            final TestResult result = createTestResult(pageAnn, uuid, description);
-            getLifecycle().scheduleTestCase(result);
-            getLifecycle().startTestCase(uuid);
+        if (reportTestPage(description.getMethodName())) {
+            FitNessePageAnnotation pageAnn = description.getAnnotation(FitNessePageAnnotation.class);
+            if (pageAnn != null) {
+                final String uuid = generateNewTestUUID();
+                final TestResult result = createTestResult(pageAnn, uuid, description);
+                getLifecycle().scheduleTestCase(result);
+                getLifecycle().startTestCase(uuid);
+            }
         }
     }
 
     @Override
     public void testFailure(Failure failure) {
-        String uuid;
-        if (failure.getDescription().isTest()) {
-            uuid = currentTestUUID;
-            processAttachments(failure.getException(), SCREENSHOT_PATTERN, PAGESOURCE_PATTERN);
-        } else {
-            uuid = startFakeTestCase(failure.getDescription());
+        Description description = failure.getDescription();
+        if (reportTestPage(description.getMethodName())) {
+            String uuid;
+            if (description.isTest()) {
+                uuid = currentTestUUID;
+                processAttachments(failure.getException(), SCREENSHOT_PATTERN, PAGESOURCE_PATTERN);
+            } else {
+                uuid = startFakeTestCase(description);
+            }
+            fireTestCaseFailure(uuid, failure.getException());
+            finishTestCase(uuid);
         }
-        fireTestCaseFailure(uuid, failure.getException());
-        finishTestCase(uuid);
     }
 
     @Override
@@ -107,16 +107,18 @@ public class JUnitAllureFrameworkListener extends RunListener {
 
     @Override
     public void testFinished(Description description) {
-        String uuid = currentTestUUID;
-        getLifecycle().updateTestCase(uuid, testResult -> {
-            if (testResult.getStatus() == null) {
-                testResult.setStatus(Status.PASSED);
-            }
-        });
-        String methodName = description.getMethodName();
-        makeAttachment(fitnesseResult(methodName).getBytes(), "FitNesse Result page", "text/html");
+        if (reportTestPage(description.getMethodName())) {
+            String uuid = currentTestUUID;
+            getLifecycle().updateTestCase(uuid, testResult -> {
+                if (testResult.getStatus() == null) {
+                    testResult.setStatus(Status.PASSED);
+                }
+            });
+            String methodName = description.getMethodName();
+            makeAttachment(fitnesseResult(methodName).getBytes(), "FitNesse Result page", "text/html");
 
-        finishTestCase(uuid);
+            finishTestCase(uuid);
+        }
     }
 
     private void testSuiteFinished(String uid) {
@@ -139,12 +141,16 @@ public class JUnitAllureFrameworkListener extends RunListener {
         }
     }
 
-
     private String getSuiteUid(Description description) {
-        String suiteName = description.getClassName();
+        String suiteName;
+        FitNessePageAnnotation pageAnn = description.getAnnotation(FitNessePageAnnotation.class);
+        if (pageAnn != null) {
+            suiteName = getFullSuitePath(pageAnn.getWikiPage());
+        } else {
+            suiteName = description.getClassName();
+        }
         if (!this.getSuites().containsKey(suiteName)) {
-            Description suiteDescription = Description.createSuiteDescription(description.getTestClass());
-            this.testSuiteStarted(suiteDescription);
+            this.testSuiteStarted(suiteName);
         }
 
         return this.getSuites().get(suiteName);
@@ -193,7 +199,7 @@ public class JUnitAllureFrameworkListener extends RunListener {
             for (Pattern pattern : patterns) {
                 Matcher patternMatcher = pattern.matcher(ex.getMessage());
                 if (patternMatcher.find()) {
-                    String filePath = HsacFitNesseRunner.FITNESSE_RESULTS_PATH + "/" + patternMatcher.group(1);
+                    String filePath = hsacEnvironment.getFitNesseRootDir() + "/" + patternMatcher.group(1);
                     String attName;
                     String type;
                     String ext = FilenameUtils.getExtension(Paths.get(filePath).toString());
@@ -240,17 +246,17 @@ public class JUnitAllureFrameworkListener extends RunListener {
         String fullName = getFullName(page);
 
         String suiteName = page.getParent().getName();
-        String tagInfo = page.getData().getProperties().get("Suites");
-        List<Label> labels = createStories(suiteName, tagInfo);
+        String[] tagInfo = getTags(page);
+        List<Label> labels = createLabels(suiteName, tagInfo);
 
         String name = page.getName();
 
         return new TestResult()
-                    .withUuid(uuid)
-                    .withHistoryId(getHistoryId(description, fullName))
-                    .withName(name)
-                    .withFullName(fullName)
-                    .withLabels(labels);
+                .withUuid(uuid)
+                .withHistoryId(getHistoryId(description, fullName))
+                .withName(name)
+                .withFullName(fullName)
+                .withLabels(labels);
     }
 
     private String getFullName(WikiPage page) {
@@ -263,20 +269,19 @@ public class JUnitAllureFrameworkListener extends RunListener {
         return String.join(".", pages);
     }
 
-    private List<Label> createStories(String suite, String tagInfo) {
+    private List<Label> createLabels(String suite, String[] tags) {
         List<Label> labels = new ArrayList<>();
 
         Label featureLabel = ResultsUtils.createFeatureLabel(suite);
         labels.add(featureLabel);
-        if (null != tagInfo) {
-            String[] tags = tagInfo.split(",");
-            for (String tag : tags) {
-                tag = tag.trim();
-                Label storyLabel = ResultsUtils.createStoryLabel(tag);
-                labels.add(storyLabel);
-            }
+        for (String tag : tags) {
+            tag = tag.trim();
+            Label storyLabel = ResultsUtils.createStoryLabel(tag);
+            labels.add(storyLabel);
+            Label tagLabel = ResultsUtils.createTagLabel(tag);
+            labels.add(tagLabel);
         }
-
+        //For some reason, the host label no longer gets set when applying story labels..
         labels.add(hostLabel);
         labels.add(ResultsUtils.createThreadLabel());
         return labels;
@@ -297,5 +302,29 @@ public class JUnitAllureFrameworkListener extends RunListener {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("Could not find md5 hashing algorithm", e);
         }
+    }
+
+    private String[] getTags(WikiPage page) {
+        String[] tags = new String[0];
+        String tagInfo = page.getData().getProperties().get("Suites");
+        if (null != tagInfo) {
+            tags = tagInfo.split(",");
+        }
+        return tags;
+    }
+
+    private String getFullSuitePath(WikiPage page) {
+        StringBuilder suitePath = new StringBuilder();
+        while (page.getParent() != page) {
+            if (!page.getParent().getName().equals("FitNesseRoot")) {
+                suitePath.insert(0, page.getParent().getName() + ".");
+            }
+            page = page.getParent();
+        }
+        return suitePath.toString().substring(0, suitePath.length() - 1);
+    }
+
+    private boolean reportTestPage(String pageName) {
+        return !skipSpecialPages || !SPECIAL_PAGE_PATTERN.matcher(pageName).matches();
     }
 }

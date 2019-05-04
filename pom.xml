@@ -46,8 +46,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <fitnesse.version>20161106</fitnesse.version>
-        <hsac.fixtures.version>3.3.1</hsac.fixtures.version>
+        <fitnesse.version>20190428</fitnesse.version>
+        <hsac.fixtures.version>4.4.1</hsac.fixtures.version>
         <allure.version>2.0-BETA17</allure.version>
     </properties>
 
@@ -74,6 +74,7 @@
             <artifactId>allure-java-commons</artifactId>
             <version>${allure.version}</version>
         </dependency>
+
     </dependencies>
 
     <build>
