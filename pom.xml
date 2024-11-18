@@ -46,7 +46,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <fitnesse.version>20190428</fitnesse.version>
+        <fitnesse.version>20241026</fitnesse.version>
         <hsac.fixtures.version>4.4.1</hsac.fixtures.version>
         <allure.version>1.5.4</allure.version>
     </properties>
